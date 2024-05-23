@@ -26,9 +26,10 @@ class AccountFactory extends Factory
     {
         $faker = \Faker\Factory::create();
         $faker->addProvider(new phoneNumberFaker($faker));
+        $faker_ = \Faker\Factory::create('ar_SA');
         return [
-            'userName' => fake()->unique()->firstName(),
-            'password' => static::$password ??= Hash::make('password'),
+            'userName' => $faker->firstName(),
+            'password' => 'password',
             'remember_token' => Str::random(10),
             'phoneNumber'=>$faker->randomPhoneNumber(),
             'email'=>fake()->email(),

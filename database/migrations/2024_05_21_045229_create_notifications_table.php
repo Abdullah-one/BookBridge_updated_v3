@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('title');
             $table->String('message');
             $table->foreignId('account_id')->constrained('accounts')->cascadeOnDelete();
-            $table->boolean('isRead')->default('false');
+            $table->boolean('isRead')->default(false);
             $table->timestamps();
         });
     }

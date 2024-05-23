@@ -128,15 +128,15 @@ class AuthServiceProvider extends ServiceProvider
         //                                   **  EXCHANGE POINT  **
         Gate::define('RejectAndConfirmByExchangePoint',function (Account $account,BookDonation $bookDonation){
             return $account->exchangePoint->id == $bookDonation->exchangePoint->id &&
-                $bookDonation->reservations()->where('status','=','بانتظار استلامها من المتبرع');
+                $bookDonation->reservations()->where('status','=','بانتظار استلامها من المتبرع')->first();
         });
         Gate::define('RejectAndConfirmOfWaitedDonationsByExchangePoint',function (Account $account,BookDonation $bookDonation){
             return $account->exchangePoint->id == $bookDonation->exchangePoint->id &&
-                $bookDonation->reservations()->where('status','=','بانتظار استلامها من المتبرع');
+                $bookDonation->reservations()->where('status','=','بانتظار استلامها من المتبرع')->first();
         });
         Gate::define('RejectFromBeneficiary',function (Account $account,BookDonation $bookDonation){
             return $account->exchangePoint->id == $bookDonation->exchangePoint->id &&
-                $bookDonation->reservations()->where('status','=', 'بانتظار مجيئك واستلامها');
+                $bookDonation->reservations()->where('status','=', 'بانتظار مجيئك واستلامها')->first();
 
         });
 

@@ -94,6 +94,11 @@ Route::controller(ImageController::class)->prefix('images')->group(function (){
 //                                      * Residential Quarter Controller *
 Route::controller(\App\Http\Controllers\Api\User\ResidentialQuarterController::class)->prefix('user/residentialQuarter')->group(function (){
     Route::get('/getResidentialQuarterAndItsPoints','getResidentialQuarterAndItsPoints')->name('getResidentialQuarterAndItsPoints');
+    Route::get('/getResidentialQuarter','getResidentialQuarter')->name('getResidentialQuarter');
+});
+//                                      * Exchange Point Controller *
+Route::controller(ExchangePointController::class)->prefix('user/exchangePoints')->group(function (){
+    Route::get('/getExchangePointsByStreetID','getExchangePointsByStreetID')->name('getExchangePointsByStreetID');
 });
 
 
@@ -102,8 +107,8 @@ Route::controller(\App\Http\Controllers\Api\User\ResidentialQuarterController::c
 
 
 
-
 //                                       ---  SUPER ADMIN  ---
+//                                     **   AccountController   **
 Route::controller(\App\Http\Controllers\Api\Admin\SuperAdmin\AccountController::class)->prefix('superAdmin/accounts')->group(function (){
     Route::post('/registerAdmin','registerAdmin')->name('registerAdmin');
     Route::delete('/deleteAdmin/{account_id}','deleteAdmin')->name('deleteAdmin');
@@ -114,7 +119,7 @@ Route::controller(\App\Http\Controllers\Api\Admin\SuperAdmin\AccountController::
     Route::get('/getAdmin/{id}','getAdmin')->name('getAdmin');
     Route::get('/getAdminByUserName/','getAdminByUserName')->name('getAdminByUserName');
 });
-    //->middleware('can:IsSuperAdmin');
+//                                               **   CityController   **
 Route::controller(\App\Http\Controllers\Api\Admin\SuperAdmin\CityController::class)->prefix('superAdmin/cities')->group(function () {
     Route::get('/getAdministratorCities/admins/{admin_id}','getAdministratorCities')->name('getAdministratorCities');
     Route::put('/addCityForAdministration/{city_id}/admins/{admin_id}','addCityForAdministration')->name('addCityForAdministration');
@@ -129,6 +134,7 @@ Route::controller(\App\Http\Controllers\Api\Admin\SuperAdmin\CityController::cla
     Route::get('/{id}','get')->name('cities.get');
     Route::get('/getByDistrict','getByDistrict')->name('cities.getByDistrict');
 });
+//                                           **   ResidentialQuarterController   **
 Route::controller(\App\Http\Controllers\Api\Admin\SuperAdmin\ResidentialQuarterController::class)->prefix('superAdmin/residentialQuarters')->group(function () {
     Route::get('/getByCity','getByCity')->name('residentialQuarters.getByCity');
     Route::get('/customGet','customGet')->name('residentialQuarters.customGet');
@@ -138,15 +144,22 @@ Route::controller(\App\Http\Controllers\Api\Admin\SuperAdmin\ResidentialQuarterC
     Route::put('/update/{id}','update')->name('residentialQuarters.update');
     Route::delete('/destroyRemovableResidentialQuarter/{id}','destroyRemovableResidentialQuarter')->name('destroyRemovableResidentialQuarter');
 });
+//                                              **   ExchangePointController   **
 Route::controller(\App\Http\Controllers\Api\Admin\SuperAdmin\ExchangePointController::class)->prefix('superAdmin/exchangePoints')->group(function () {
     Route::get('/getByResidentialQuarter','getByResidentialQuarter')->name('exchangePoints.getByResidentialQuarter');
     Route::get('/customGet','customGet')->name('ExchangePointController.customGet');
     Route::post('/register','register')->name('ExchangePointController.register');
     Route::put('/update/{id}','update')->name('ExchangePointController.update');
     Route::get('/{id}','get')->name('ExchangePointController.get');
-
-
 });
+
+
+
+
+
+
+
+
 
 //                                         ---  ADMIN ---
 //                                     *  Account Controller  *
@@ -155,30 +168,31 @@ Route::controller(\App\Http\Controllers\Api\Admin\AccountController::class)->pre
 });
 
 
-
-
-
-
+//                                           ---   Other   ---
+//                                         **   CityController   **
 Route::controller(\App\Http\Controllers\Api\User\CityController::class)->prefix('cities')->group(function (){
     Route::get('getByDistrict/{district}','getByDistrict')->name('getByDistrict');
     Route::get('get','get')->name('get');
 
 });
-
+//                                          **   ResidentialQuarterController   **
 Route::controller(\App\Http\Controllers\Api\User\ResidentialQuarterController::class)->prefix('residential_quarters')->group(function (){
     Route::get('getByCity/{city_id}','getByCity')->name('getByCity');
 });
 
-Route::middleware('auth:sanctum')->get('/account', function (Request $request) {
-    return $request->user();
-});
 
 
-//                                   **  EXCHANGE POINT  **
+
+
+
+
+
+//                                                  --   Exchange Point  ---
+//                                                 **   BookDonationController   **
 Route::controller(\App\Http\Controllers\Api\Point\BookDonationController::class)->prefix('exchangePoint/bookDonations')->group(function (){
-    Route::put('RejectByExchangePoint/{bookDonation_id}','RejectByExchangePoint')->name('RejectByExchangePoint');
-    Route::get('getUnWaitedDonationsByPhoneNumber','getUnWaitedDonationsByPhoneNumber')->name('getUnWaitedDonationsByPhoneNumber');
-    Route::get('getWaitedDonationsByPhoneNumber','getWaitedDonationsByPhoneNumber')->name('getWaitedDonationsByPhoneNumber');
+    Route::middleware('auth:sanctum')->put('RejectByExchangePoint/{bookDonation_id}','RejectByExchangePoint')->name('RejectByExchangePoint');
+    Route::middleware('auth:sanctum')->get('getUnWaitedDonationsByPhoneNumber','getUnWaitedDonationsByPhoneNumber')->name('getUnWaitedDonationsByPhoneNumber');
+    Route::middleware('auth:sanctum')->get('getWaitedDonationsByPhoneNumber','getWaitedDonationsByPhoneNumber')->name('getWaitedDonationsByPhoneNumber');
     Route::put('confirmReceptionOfWaitedDonations/{bookDonation_id}','confirmReceptionOfWaitedDonations')->name('confirmReceptionOfWaitedDonations');
     Route::put('confirmReceptionOfUnWaitedDonations/{bookDonation_id}','confirmReceptionOfUnWaitedDonations')->name('confirmReceptionOfUnWaitedDonations');
     Route::get('getWaitedReservationsByPhoneNumber','getWaitedReservationsByPhoneNumber')->name('getWaitedReservationsByPhoneNumber');
@@ -186,9 +200,7 @@ Route::controller(\App\Http\Controllers\Api\Point\BookDonationController::class)
     Route::put('confirmDelivery/{bookDonation_id}','confirmDelivery')->name('confirmDelivery');
 
 });
-
-
-
+//
 Route::controller(ExchangePointController::class)->prefix('exchangePoints')->group(function (){
     Route::get('getExchangePoints','getExchangePoints')->name('getExchangePoints');
 });

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ResidentialQuarter;
 use App\RepositoryPattern\ResidentialQuarterRepository;
 use Illuminate\Http\JsonResponse;
+use PharIo\Version\Exception;
 
 class ResidentialQuarterController extends Controller
 {
@@ -43,6 +44,23 @@ class ResidentialQuarterController extends Controller
             ])
             ->get();
         return response()->json($residentialQuarters);
+
+    }
+
+    public function getResidentialQuarter(): JsonResponse
+    {
+        try{
+            $residentialQuarters= ResidentialQuarter::select([
+                'id',
+                'name',
+            ])
+                ->get();
+            return response()->json(['status'=>'success','data'=>$residentialQuarters]);
+        }
+        catch(Exception $exception){
+            return response()->json(['status'=>'fail','message'=>'هناك خطأ بالخادم']);
+        }
+
 
     }
 }

@@ -331,8 +331,9 @@ class BookDonationRepository {
                     ->orWhere('canAcceptEvenItIsNotWaited',true);
             })
             ->select([
-                'accounts.userName',
+                'accounts.userName as donor',
                 'book_donations.id',
+                'book_donations.donorName',
                 'level',
                 'semester',
                 'book_donations.created_at'
@@ -380,11 +381,11 @@ class BookDonationRepository {
             ->join('users','accounts.id','=','users.account_id')
             ->join('reservations',function ($join) {
                 $join->on('users.id','=','reservations.user_id')
-                    ->where('reservations.status','بانتظار مجيئك واستلامها')
-                    ->orWhere('canAcceptEvenItIsNotWaited',true);
+                    ->where('reservations.status','بانتظار مجيئك واستلامها');
             })
             ->join('book_donations',function ($join) use ($exchangePoint_id) {
-                $join->on('reservations.bookDonation_id','=','book_donations.id');
+                $join->on('reservations.bookDonation_id','=','book_donations.id')
+                    ->where('book_donations.exchangePoint_id',$exchangePoint_id);
             })
             ->select([
                 'accounts.userName',

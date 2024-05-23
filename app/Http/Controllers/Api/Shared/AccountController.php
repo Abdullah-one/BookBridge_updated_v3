@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Testing\Fluent\Concerns\Has;
 use Illuminate\Validation\ValidationException;
+use PDOException;
 use PHPUnit\Exception;
 use Random\RandomException;
 
@@ -182,7 +183,7 @@ class AccountController extends Controller
         $alreadyAccountWithSamePhone=$this->AccountRepository->exist($phoneNumber);
         $verifyRequest = phoneVerificationToken::where('phoneNumber', $phoneNumber)->first();
         if (!$verifyRequest || $verifyRequest->token != $token ) {
-            response()->json(['status'=>'fail','message'=>'الرمز المدخل غير صحيح']);
+            return response()->json(['status'=>'fail','message'=>'الرمز المدخل غير صحيح']);
         }
         $UsedForMoreOneAccount=false;
         try{
@@ -195,7 +196,7 @@ class AccountController extends Controller
                 if ($UsedForMoreOneAccount) {
                     $no_bookingOfFirstSemester=$alreadyAccountWithSamePhone->user->no_bookingOfFirstSemester;
                     $no_bookingOfSecondSemester=$alreadyAccountWithSamePhone->user->no_bookingOfSecondSemester;
-                    $this->userRepository->updateNo_booking($account->user, $no_bookingOfFirstSemester,
+                    $this->UserRepository->updateNo_booking($account->user, $no_bookingOfFirstSemester,
                         $no_bookingOfSecondSemester);
                 }
                 $alreadyAccountWithSamePhone->update([

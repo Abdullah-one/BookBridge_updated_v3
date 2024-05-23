@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Point;
 
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PerformanceController;
 use App\Http\Controllers\Controller;
 use App\Jobs\AddToRemovalList;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use PDOException;
+use function PHPUnit\Framework\isEmpty;
 
 class BookDonationController extends Controller
 {
@@ -43,23 +45,32 @@ class BookDonationController extends Controller
         $this->transactionRepository=$transactionRepository;
     }
 
+    public function getFcm_token($user_id){
+        return User::find($user_id)->account->fcm_token;
+    }
 
-    public function RejectByExchangePoint($bookDonation_id): void
+
+    public function RejectByExchangePoint($bookDonation_id): JsonResponse
     {
+        try {
             $bookDonation = BookDonation::find($bookDonation_id); //database/var
             if(!$bookDonation){
-                abort(404);
+                return response()->json(['status'=>'fail','message'=>'التبرع غير موجود']);
             }
-            //TODO: Gate::authorize('IsPoint');
-            //TODO: Gate::authorize('RejectAndConfirmByExchangePoint',[$bookDonation]);
-        try {
+            if (Gate::denies('isPoint',[$bookDonation])) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            if (Gate::denies('RejectAndConfirmByExchangePoint',[$bookDonation])) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
             DB::beginTransaction();
-            $beneficiary_id=$this->bookDonationRepository->getReservationOfBeneficiary($bookDonation_id)->user_id; //var
+            $reservation=$this->bookDonationRepository->getReservationOfBeneficiary($bookDonation_id);
+            $reservation_id=$reservation->id;
+            $beneficiary_id=$reservation->user_id; //var
             $beneficiary=User::find($beneficiary_id);
             $semester = $bookDonation->semester;  //database/var
             $this->bookDonationRepository->updateReservation([
                 'bookDonation_id' => $bookDonation_id,
-                //TODO: correct the value of user_id to $beneficiary_id
                 'user_id' => $beneficiary_id,
                 'status' => 'بانتظار استلامها من المتبرع'
             ],
@@ -72,33 +83,62 @@ class BookDonationController extends Controller
                 'isHided' => true,
                 'receiptDate' => Carbon::now(),
             ]);
-            //TODO: change first Parameter of next method call on next line
             $userBookDonationController=app(\App\Http\Controllers\Api\User\BookDonationController::class);
             $userBookDonationController->decrementNo_booking($beneficiary, $semester);
             $bookDonation->exchangePoint()->decrement('no_packages');
             $performanceController=app(PerformanceController::class);
-            $beneficiary->increment('no_donations');
+            User::find($bookDonation->donor_id)->increment('no_donations');
             $performanceController->incrementStatus($bookDonation->exchangePoint_id,'no_rejectedDonation');
-            $transaction=$this->transactionRepository->store($bookDonation_id,'تم رفض التبرع');
+            $transaction=$this->transactionRepository->store($bookDonation_id,'تم رفض التبرع',$bookDonation->donor_id);
             DB::commit();
             RemoveTransaction::dispatch($transaction->id)->delay(now()->addDays(90));
+//            $notificationController=new NotificationController();
+//            $notificationController->create(
+//                [
+//                    'data'=>[
+//                        'title'=>'تم إلغاء حجزك',
+//                        'message'=>'تم إلغاء حجزك بسبب إلغاء الحجز من المنصة ب id {$reservation_id} ,  يرجى مراجعة صفحة حجوزاتي ثم حجوزات لم تتم ',
+//
+//                        'account_id'=>$beneficiary_id
+//                    ],
+//                'token'=> $this->getFcm_token($beneficiary_id)
+//                ]
+//           );
+//            $notificationController->create(
+//                [
+//                    'data'=>[
+//                        'title'=>'شكرا لتبرعك',
+//                        'message'=>'شكرا لتبرعك ونعتذر عن عدم قبول تبرعك ب id {$bookDonation->id} ,  يرجى مراجعة صفحة تبرعاتي ثم تبرعات مرفوضة ',
+//
+//                        'account_id'=>$bookDonation->donor_id
+//                    ],
+//                'token'=> $this->getFcm_token($bookDonation->donor_id)
+//                ]
+//            );
+            return response()->json(['status' => 'success']);
         }
         catch (PDOException $exception){
             DB::rollBack();
-            abort(500);
+
+            return response()->json(['status'=>'fail','message'=>'هناك خطأ بالخادم']);
         }
 
     }
 
-    public function confirmReceptionOfUnWaitedDonations($bookDonation_id): void
+    public function confirmReceptionOfUnWaitedDonations($bookDonation_id)
     {
-        $bookDonation = BookDonation::find($bookDonation_id); //database/var
-        if(!$bookDonation){
-            abort(404);
-        }
-        //TODO: Gate::authorize('IsPoint');
-        //TODO: Gate::authorize('RejectAndConfirmByExchangePoint',[$bookDonation]);
         try {
+            $bookDonation = BookDonation::find($bookDonation_id); //database/var
+            if(!$bookDonation){
+                return response()->json(['status'=>'fail','message'=>'التبرع غير موجود']);
+            }
+            if (Gate::denies('isPoint',[$bookDonation])) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            if (Gate::denies('RejectAndConfirmByExchangePoint',[$bookDonation])) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+
             DB::beginTransaction();
             $this->bookDonationRepository->updateById($bookDonation_id, [
                 'status' => 'غير محجوز في النقطة',
@@ -250,20 +290,25 @@ class BookDonationController extends Controller
         return response()->json($this->bookDonationRepository->getUnWaitedDonationsByPhoneNumber($phoneNumber,1));
     }
 
-    public function confirmReceptionOfWaitedDonations($bookDonation_id): void
+    public function confirmReceptionOfWaitedDonations($bookDonation_id)
     {
         try {
             $bookDonation = BookDonation::find($bookDonation_id); //database/var
             if(!$bookDonation){
-                abort(404);
+                return response()->json(['status'=>'fail','message'=>'التبرع غير موجود']);
+            }
+            if (Gate::denies('isPoint')) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            if (Gate::denies('RejectAndConfirmOfWaitedDonationsByExchangePoint',[$bookDonation])) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
             }
             DB::beginTransaction();
-            //TODO: Gate::authorize('RejectAndConfirmOfWaitedDonationsByExchangePoint',[$bookDonation]);
-            $beneficiary_id=$this->bookDonationRepository->getReservationOfBeneficiary($bookDonation_id)->user_id; //var
+            $reservation=$this->bookDonationRepository->getReservationOfBeneficiary($bookDonation_id);
+            $beneficiary_id=$reservation->user_id; //var
             $currentDate = \Illuminate\Support\Carbon::now(); //var
             $this->bookDonationRepository->updateReservation([
                 'bookDonation_id' => $bookDonation_id,
-                //TODO: correct the value of user_id to $beneficiary_id
                 'user_id' => $beneficiary_id,
                 'status' => 'بانتظار استلامها من المتبرع'
             ],
@@ -281,47 +326,102 @@ class BookDonationController extends Controller
             $bookDonation->donorUser->increment('no_donations');
             $performanceController=app(PerformanceController::class);
             $performanceController->incrementStatus($bookDonation->exchangePoint_id,'no_receivedDonation');
-            $transaction=$this->transactionRepository->store($bookDonation_id,'تم استلام التبرع',$beneficiary_id);
+            $transaction=$this->transactionRepository->store($bookDonation_id,'تم استلام التبرع',$bookDonation->donor_id);
             DB::commit();
             RemoveTransaction::dispatch($transaction->id)->delay(now()->addDays(90));
+//            $notificationController=new NotificationController();
+//            $notificationController->create(
+//                [
+//                    'data'=>[
+//                        'title'=>'تم وصول حجزك',
+//                        'message'=>'تم وصول حجزك ب id {$reservation->id} ,  يرجى مراجعة صفحة حجوزاتي ثم حجوزات بانتظار استلامها ',
+//
+//                        'account_id'=>$beneficiary_id
+//                    ],
+//                'token'=> $this->getFcm_token($beneficiary_id)
+//                ]
+//           );
+//            $notificationController->create(
+//                [
+//                    'data'=>[
+//                        'title'=>'شكرا لتبرعك',
+//                        'message'=>'شكرا لتبرعك تم استلام تبرعكم ب id {$bookDonation->id} ,  يرجى مراجعة صفحة تبرعاتي ثم تبرعات تم تسليمها ',
+//
+//                        'account_id'=>$bookDonation->donor_id
+//                    ],
+//                'token'=> $this->getFcm_token($bookDonation->donor_id)
+//                ]
+//            );
+            return response()->json(['status'=>'success']);
 
         }
         catch (PDOException $exception){
             DB::rollBack();
-            abort(500,$exception->getMessage());
+            return response()->json(['status'=>'fail','message'=>'هناك خطأ بالخادم']);
+
         }
     }
 
     public function getWaitedDonationsByPhoneNumber(Request $request): JsonResponse
     {
-        //TODO: Gate::authorize('IsPoint');
-        $phoneNumber=$request->phoneNumber;
-        // $user=auth()->user()->id;
-        return response()->json($this->bookDonationRepository->getWaitedDonationsByPhoneNumber($phoneNumber,1));
+        try {
+            if (Gate::denies('isPoint')) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            $phoneNumber=$request->phoneNumber;
+            $account_id=auth()->user()->exchangePoint->id;
+            $result=$this->bookDonationRepository->getWaitedDonationsByPhoneNumber($phoneNumber,$account_id);
+            if($result->isEmpty()){
+                return response()->json(['status'=>'fail','message'=>"لا توجد تبرعات منتظر استلامها بهذا الرقم في هذه النقطة"]);
+            }
+            return response()->json(['status'=>'success','data'=>$result]);
+        }
+        catch (PDOException $exception){
+            DB::rollBack();
+            return response()->json(['status'=>'fail','message'=>'هناك خطأ بالخادم']);
+
+        }
     }
 
     public function getWaitedReservationsByPhoneNumber(Request $request): JsonResponse
     {
-        //TODO: Gate::authorize('IsPoint');
-        $phoneNumber=$request->phoneNumber; //var
-        // $user=auth()->user()->id;
-        return response()->json($this->bookDonationRepository->getWaitedReservationsByPhoneNumber($phoneNumber,3));
+        try {
+            if (Gate::denies('isPoint')) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            $phoneNumber=$request->phoneNumber;
+            $account_id=auth()->user()->exchangePoint->id;
+            $result=$this->bookDonationRepository->getWaitedReservationsByPhoneNumber($phoneNumber,$account_id);
+            if($result->isEmpty()){
+                return response()->json(['status'=>'fail','message'=>"لا توجد حجوزات منتظر تسليمها بهذا الرقم في هذه النقطة"]);
+            }
+            return response()->json(['status'=>'success','data'=>$result]);
+        }
+        catch (PDOException $exception){
+            DB::rollBack();
+            return response()->json(['status'=>'fail','message'=>'هناك خطأ بالخادم']);
+
+        }
     }
 
-    public function RejectFromBeneficiary($bookDonation_id): void
+    public function RejectFromBeneficiary($bookDonation_id):JsonResponse
     {
         try {
             $bookDonation = BookDonation::find($bookDonation_id); //database/var
             if(!$bookDonation){
-                abort(404);
+                return response()->json(['status'=>'fail','message'=>'التبرع غير موجود']);
             }
-            //TODO: Gate::authorize('RejectFromBeneficiary',[$bookDonation]);
+            if (Gate::denies('isPoint')) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            if (Gate::denies('RejectFromBeneficiary',[$bookDonation])) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
             $beneficiary_id=$this->bookDonationRepository->getReservationOfBeneficiary($bookDonation_id)->user_id; //var
             $beneficiary=User::find($beneficiary_id);
             $semester = $bookDonation->semester;  //database/var
             $this->bookDonationRepository->updateReservation([
                 'bookDonation_id' => $bookDonation_id,
-                //TODO: correct the value of user_id to $beneficiary_id
                 'user_id' => $beneficiary_id,
                 'status' => 'بانتظار مجيئك واستلامها'
 
@@ -350,11 +450,12 @@ class BookDonationController extends Controller
             DB::commit();
             RemoveTransaction::dispatch($transaction->id)->delay(now()->addDays(90));
             RemoveDonation::dispatch($bookDonation_id)->delay(now()->addDays(365));
+            return response()->json(['status'=>'success']);
         }
         catch (PDOException $exception){
             DB::rollBack();
+            return response()->json(['status'=>'fail','message'=>'هناك خطأ بالخادم']);
 
-            abort(500,$exception->getMessage());
         }
 
     }
@@ -364,22 +465,26 @@ class BookDonationController extends Controller
         return $bookDonation->no_rejecting == 3;
     }
 
-    public function confirmDelivery($bookDonation_id, Request $request): void
+    public function confirmDelivery($bookDonation_id, Request $request): JsonResponse
     {
         try {
+            $code=$request->code;
             $bookDonation = BookDonation::find($bookDonation_id); //database/var
             if(!$bookDonation){
-                abort(404);
+                return response()->json(['status'=>'fail','message'=>'التبرع غير موجود']);
             }
-            $code=$request->code;
-            //TODO: Gate::authorize('confirmDelivery',[$bookDonation.$code]);
+            if (Gate::denies('isPoint')) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            if (Gate::denies('confirmDelivery',[$bookDonation,$code])) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
             DB::beginTransaction();
             $beneficiary_id=$this->bookDonationRepository->getReservationOfBeneficiary($bookDonation_id)->user_id; //var
             $beneficiary=User::find($beneficiary_id);
             $semester = $bookDonation->semester;  //database/var
             $this->bookDonationRepository->updateReservation([
                 'bookDonation_id' => $bookDonation_id,
-                //TODO: correct the value of user_id to $beneficiary_id
                 'user_id' => $beneficiary_id,
                 'status' => 'بانتظار مجيئك واستلامها'
 
@@ -392,7 +497,6 @@ class BookDonationController extends Controller
             $this->bookDonationRepository->updateById($bookDonation_id, [
                 'status' => 'تم التسليم',
             ]);
-            //TODO: change first Parameter of next method call on next line
             $beneficiary->increment('no_benefits');
             $performanceController=app(PerformanceController::class); //var
             $bookDonation->exchangePoint()->decrement('no_packages');
@@ -401,11 +505,12 @@ class BookDonationController extends Controller
             DB::commit();
             RemoveTransaction::dispatch($transaction->id)->delay(now()->addDays(90));
             RemoveDonation::dispatch($bookDonation_id)->delay(now()->addDays(365));
-
+            return response()->json(['status'=>'success']);
         }
         catch (PDOException $exception){
             DB::rollBack();
-            abort(500);
+            return response()->json(['status'=>'fail','message'=>'هناك خطأ بالخادم']);
+
         }
 
     }

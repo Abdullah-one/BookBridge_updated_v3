@@ -21,7 +21,7 @@ class BookDonationFactory extends Factory
             'level'=>fake()->randomElement(['أولى إعدادي','ثاني إعدادي','ثالث إعدادي','رابع إعدادي','خامس إعدادي','سادس إعدادي',
                 'سابع إعدادي','ثامن إعدادي','تاسع إعدادي','أولى ثانوي','ثاني ثانوي','ثالث ثانوي']),
             'semester'=>fake()->randomElement(['الفصل الأول','الفصل الثاني','كلا الفصلين']),
-            'description'=>fake()->text(200)
+            'description'=>fake()->randomElement(['الكتب بحالة جيدة'])
         ];
     }
     /**

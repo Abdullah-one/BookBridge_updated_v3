@@ -711,7 +711,7 @@ class BookDonationController extends Controller
             $performanceController = app(PerformanceController::class);
             $performanceController->incrementStatus($bookDonation->exchangePoint_id, 'no_canceledDonationFromBeneficiary');
             DB::commit();
-                        $notificationController=new NotificationController();
+            $notificationController=new NotificationController();
 //            $notificationController->create(
 //                [
 //                    'data'=>[

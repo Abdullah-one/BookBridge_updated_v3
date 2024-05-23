@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Request;
 
 class TransactionRepository
 {
-    public function store(int $bookDonation_id,string $status,int $user_id=0)
+    public function store(int $bookDonation_id,string $status,int $user_id)
     {
         return Transaction::create([
             'bookDonation_id' => $bookDonation_id,
