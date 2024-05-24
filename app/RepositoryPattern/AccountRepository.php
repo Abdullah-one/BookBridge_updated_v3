@@ -223,7 +223,8 @@ class AccountRepository
             ->select([
                 'userName',
                 'phoneVerified',
-                'role'
+                'role',
+                'email',
             ])
             ->first();
     }

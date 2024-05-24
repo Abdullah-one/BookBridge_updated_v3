@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Route;
 //                                          *  Notifications  Controller*
 Route::controller(NotificationController::class)->prefix('notifications')->group(function (){
     Route::middleware('auth:sanctum')->post('/get','get')->name('notifications.get');
+    Route::middleware('auth:sanctum')->put('/updateFcmToken','updateFcmToken')->name('updateFcmToken');
 });
 
 
@@ -64,6 +65,7 @@ Route::controller(\App\Http\Controllers\Api\Shared\BookDonationController::class
 //                                        *  Account Controller  *
 Route::controller(\App\Http\Controllers\Api\User\AccountController::class)->prefix('user/accounts')->group(function (){
     Route::post('/registerUserAccount','registerUserAccount')->name('RegisterUserAccount');
+    Route::get('/getUserInformation','getUserInformation')->name('getUserInformation');
 });
 //                                      *  BookDonation Controller  *
 Route::controller(BookDonationController::class)->prefix('user/bookDonations')->group(function (){
@@ -89,7 +91,7 @@ Route::controller(BookDonationController::class)->prefix('user/bookDonations')->
 //                                                  *  Image Controller  *
 Route::controller(ImageController::class)->prefix('images')->group(function (){
     Route::delete('destroy/{id}','destroy')->name('Image.destroy');
-    Route::post('uploadImage/{id}','uploadImage')->name('uploadImage');
+    Route::post('uploadImage','uploadImage')->name('uploadImage');
 });
 //                                      * Residential Quarter Controller *
 Route::controller(\App\Http\Controllers\Api\User\ResidentialQuarterController::class)->prefix('user/residentialQuarter')->group(function (){
@@ -203,6 +205,10 @@ Route::controller(\App\Http\Controllers\Api\Point\BookDonationController::class)
 //
 Route::controller(ExchangePointController::class)->prefix('exchangePoints')->group(function (){
     Route::get('getExchangePoints','getExchangePoints')->name('getExchangePoints');
+});
+//                                                    **   Account Controller   **
+Route::controller(\App\Http\Controllers\Api\Point\AccountController::class)->prefix('point/accounts')->group(function (){
+    Route::get('/getPointInformation','getPointInformation')->name('getPointInformation');
 });
 
 

@@ -141,7 +141,7 @@ class ImageController extends Controller
             if (Gate::denies('UserCanDeleteOrUpdateBookDonation', $bookDonation)) {
                 return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
             }
-            $isDeleted=$this->imageRepository->destroy($id);
+            //$isDeleted=$this->imageRepository->destroy($id);
             $source=strstr($image->source,'images/');
             $pureSource = substr($source, strlen('images/'));
             Storage::disk('images')->delete($pureSource);

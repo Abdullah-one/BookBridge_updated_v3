@@ -301,6 +301,7 @@ class BookDonationController extends Controller
                 return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
             }
             if (Gate::denies('RejectAndConfirmOfWaitedDonationsByExchangePoint',[$bookDonation])) {
+                dd(true);
                 return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
             }
             DB::beginTransaction();

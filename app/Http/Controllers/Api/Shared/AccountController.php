@@ -78,16 +78,8 @@ class AccountController extends Controller
 
     //                              - Shared between Point and User -
 
-    public function getLoginInformation(): JsonResponse
-    {
-        Gate::authorize('isPointOrUser');
-        $account_id=auth()->user()->id;
-        return response()->json(DB::table('accounts')->where('id',$account_id)->select([
-            'phoneNumber',
-            'role',
-            'userName'
-        ])->first());
-    }
+
+
 
     /**
      *

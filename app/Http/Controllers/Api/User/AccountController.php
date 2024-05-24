@@ -36,7 +36,7 @@ class AccountController extends Controller
         $deviceName=$request->deviceName;
         $username = strstr($email, '@', true); // Extract characters before '@'
         if (strlen($username) > 20) {
-            $username = substr($username, 0, 20); // Take the first 20 characters
+            $username = '@'.substr($username, 0, 20); // Take the first 20 characters
         }
         try {
             DB::beginTransaction();
@@ -44,7 +44,7 @@ class AccountController extends Controller
             $this->userRepository->store($account->id);
             $token=$account->createToken($deviceName)->plainTextToken;
             DB::commit();
-            return response()->json(['status'=>'success','token'=>$token , 
+            return response()->json(['status'=>'success','token'=>$token ,
                  'userName'=>$account->userName]);
         }
         catch (Throwable $throwable){
@@ -56,20 +56,35 @@ class AccountController extends Controller
     }
 
 
-    
 
-    public function getGeneralInformation(): JsonResponse
+
+    public function getUserInformation(): JsonResponse
     {
-        $account=\auth()->user();
-        return response()->json($this->accountRepository->getGeneralInformation($account->id));
+        try {
+            if (Gate::denies('isUser')) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            $account_id = auth()->user()->id;
+            $result=DB::table('accounts')->where('accounts.id', $account_id)
+                ->join('users','accounts.id','=','users.account_id')
+                ->select([
+                    'phoneNumber',
+                    'role',
+                    'userName',
+                    'email',
+                    'no_donations',
+                    'no_benefits',
+                    'no_bookingOfFirstSemester',
+                    'no_bookingOfSecondSemester',
+                    'no_non_adherence_donor',
+                    'no_non_adherence_beneficiary'
+                ])->first();
+            return response()->json(['status'=>'success','data'=>$result]);
 
-    }
-
-    public function showUserAccountInformation()
-    {
-
-
-
+        }
+        catch (\Exception $exception){
+            return response()->json(['status' => 'fail', 'message' => 'هناك خطأ بالخادم']);
+        }
     }
 
 }

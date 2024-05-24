@@ -436,7 +436,6 @@ class BookDonationController extends Controller
                         'book_donations.level',
                         'book_donations.semester',
                         'accounts.userName as point',
-                        'book_donations.startLeadTimeDateForDonor',
                         (DB::raw('residential_quarters.name AS residentialQuarter')),
                     ])]);
         }
@@ -785,7 +784,6 @@ class BookDonationController extends Controller
         }
         catch (PDOException $exception){
             DB::rollBack();
-            dd($exception->getMessage());
             return response()->json(['status' => 'fail', 'message' => 'هناك خطأ بالخادم']);
         }
 

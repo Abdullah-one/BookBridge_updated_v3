@@ -222,7 +222,9 @@ class BookDonationRepository {
                 'book_donations.created_at',
                 'startLeadTimeDateForDonor',
                 (DB::raw('residential_quarters.name AS residentialQuarter')),
-            ])->paginate();
+            ])
+            ->orderByDesc('book_donations.created_at')
+            ->paginate();
 
     }
     public function getReservationOfBeneficiary($id)
@@ -272,7 +274,9 @@ class BookDonationRepository {
                 'book_donations.receiptDate',
                 'book_donations.created_at',
                 (DB::raw('residential_quarters.name AS residentialQuarter')),
-            ])->paginate();
+            ])
+            ->orderByDesc('book_donations.created_at')
+            ->paginate();
     }
 
 
@@ -308,7 +312,7 @@ class BookDonationRepository {
         return false;
     }
 
-    public function getReservations(int $user_id,array $status, $selectedData): Collection
+    public function getReservations(int $user_id,array $status, $selectedData): LengthAwarePaginator
     {
         return DB::table('reservations')->where('reservations.user_id', $user_id,)
             ->whereIn('reservations.status',$status)
@@ -317,7 +321,8 @@ class BookDonationRepository {
             ->join('accounts','account_id','=','accounts.id')
             ->join('residential_quarters','residentialQuarter_id','=','residential_quarters.id')
             ->select($selectedData)
-            ->get();
+            ->orderByDesc('reservations.created_at')
+            ->paginate();
     }
 
     public function getWaitedDonationsByPhoneNumber(string $phoneNumber,int $exchangePoint_id): Collection

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use http\Env\Response;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use PharIo\Version\Exception;
@@ -91,6 +93,26 @@ class NotificationController extends Controller
             return response()->json(['status' => 'fail', 'message' => 'هناك خطأ بالخادم']);
         }
 
+    }
+
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+
+        try {
+            if (Gate::denies('isUser')) {
+                return response()->json(['status' => 'fail', 'message' => 'غير مصرح لهذا الفعل']);
+            }
+            $fcmToken=$request->fcmToken;
+            DB::table('accounts')->where('id',auth()->user()->id)
+                ->first()
+                ->update([
+                    'fcm_token'=>$fcmToken
+                ]);
+            return \response()->json(['status'=>'success']);
+        }
+        catch (\Exception $exception){
+            return \response()->json(['status'=>'fail','message'=>'هناك خطأ بالخادم']);
+        }
     }
 
 
